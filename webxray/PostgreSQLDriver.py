@@ -26,10 +26,10 @@ class PostgreSQLDriver:
 		"""
 
 		# modify this per your install
-		self.db_user = 'user'
-		self.db_pass = 'password'
+		self.db_user = 'postgres'
+		self.db_pass = 'iDy3Z3nNNfZSkJSueHOejF'
 		self.db_host = 'localhost'
-		self.db_port = '5432'
+		self.db_port = '10012'
 
 		# the db_prefix can be overridden if you like
 		self.db_prefix = db_prefix
@@ -464,35 +464,41 @@ class PostgreSQLDriver:
 		Update information for a given client so we can check if the ip
 			is whitelisted and the client is live and then map it to the correct db.
 		"""
-
-		self.db.execute("""
-			INSERT INTO client_config (
-				ip,
-				client_id,
-				mapped_db,
-				live
-			) VALUES (
-				%s,
-				%s,
-				%s,
-				%s
-			) 
-			ON CONFLICT (client_id)
-			DO UPDATE SET
-				ip = %s,
-				mapped_db = %s,
-				live = %s
-		""", (
-			client_config['ip'],
-			client_config['client_id'],
-			client_config['mapped_db'],
-			client_config['live'],
-			client_config['ip'],
-			client_config['mapped_db'],
-			client_config['live']
+		try:
+			self.db.execute("""
+				INSERT INTO client_config (
+					ip,
+					client_id,
+					mapped_db,
+					live
+				) VALUES (
+					%s,
+					%s,
+					%s,
+					%s
+				)
+			""", (
+				client_config['ip'],
+				client_config['client_id'],
+				client_config['mapped_db'],
+				client_config['live'],
+				client_config['ip'],
+				client_config['mapped_db'],
+				client_config['live']
+				)
 			)
-		)
-		self.db_conn.commit()
+			self.db_conn.commit()
+		except:
+			self.db.execute("""
+			UPDATE client_config SET ip = %s, mapped_db = %s, live = %s WHERE client_id = %s
+			""", (
+				client_config['ip'],
+				client_config['mapped_db'],
+				client_config['live'],
+				client_config['client_id']
+				)
+			)
+			self.db_con.commit()
 	# update_client_config
 
 	def get_client_configs(self):
@@ -995,48 +1001,54 @@ class PostgreSQLDriver:
 		add a new domain record to db, ignores duplicates
 		returns id of specified domain
 		"""
-		self.db.execute("""
-			INSERT INTO domain (
-				fqdn_md5, 
-				fqdn,
-				domain_md5, 
-				domain, 
-				pubsuffix_md5, 
-				pubsuffix, 
-				tld_md5, 
-				tld,
-				domain_owner_id
-			) VALUES (
-				MD5(%s), 
-				%s,
-				MD5(%s), 
-				%s,
-				MD5(%s), 
-				%s, 
-				MD5(%s), 
-				%s,
-				%s
-			) ON CONFLICT DO NOTHING""", 
-			(
-				domain['fqdn'], 
-				domain['fqdn'],
-				domain['domain'], 
-				domain['domain'], 
-				domain['pubsuffix'], 
-				domain['pubsuffix'], 
-				domain['tld'], 
-				domain['tld'],
-				domain['domain_owner_id']
+		try:
+			self.db.execute("""
+				INSERT INTO domain (
+					fqdn_md5, 
+					fqdn,
+					domain_md5, 
+					domain, 
+					pubsuffix_md5, 
+					pubsuffix, 
+					tld_md5, 
+					tld,
+					domain_owner_id
+				) VALUES (
+					MD5(%s), 
+					%s,
+					MD5(%s), 
+					%s,
+					MD5(%s), 
+					%s, 
+					MD5(%s), 
+					%s,
+					%s
+				)""", 
+				(
+					domain['fqdn'], 
+					domain['fqdn'],
+					domain['domain'], 
+					domain['domain'], 
+					domain['pubsuffix'], 
+					domain['pubsuffix'], 
+					domain['tld'], 
+					domain['tld'],
+					domain['domain_owner_id']
+				)
 			)
-		)
-		self.db_conn.commit()
+			self.db_conn.commit()
+		except:
+			pass
 		self.db.execute("SELECT id FROM domain WHERE fqdn_md5 = MD5(%s)", (domain['fqdn'],))
 		return self.db.fetchone()[0]
 	# add_domain
 
 	def add_domain_ip_addr(self, domain_id, ip_addr):
-		self.db.execute("INSERT INTO domain_ip_addr (domain_id,ip_addr) VALUES (%s,%s) ON CONFLICT DO NOTHING", (domain_id, ip_addr))
-		self.db_conn.commit()
+		try:
+			self.db.execute("INSERT INTO domain_ip_addr (domain_id,ip_addr) VALUES (%s,%s)", (domain_id, ip_addr))
+			self.db_conn.commit()
+		except:
+			pass
 	# add_domain_ip_addr
 
 	def add_page(self, page):
@@ -1251,38 +1263,39 @@ class PostgreSQLDriver:
 		"""
 
 		# first add the link and get the id
-		self.db.execute("""
-			INSERT INTO link (
-				url, 
-				url_md5,
-				text, 
-				text_md5,
-				is_internal,
-				is_policy,
-				domain_id
-			) VALUES (
-				%s,
-				MD5(%s),
-				%s,
-				MD5(%s),
-				%s,
-				%s,
-				%s
-			) 
-			ON CONFLICT DO NOTHING
-			RETURNING id
-			""",
-			(	
-				link['url'], 
-				link['url'],
-				link['text'], 
-				link['text'],
-				link['is_internal'], 
-				link['is_policy'],
-				link['domain_id']
+		try:
+			self.db.execute("""
+				INSERT INTO link (
+					url, 
+					url_md5,
+					text, 
+					text_md5,
+					is_internal,
+					is_policy,
+					domain_id
+				) VALUES (
+					%s,
+					MD5(%s),
+					%s,
+					MD5(%s),
+					%s,
+					%s,
+					%s
+				) RETURNING id
+				""",
+				(	
+					link['url'], 
+					link['url'],
+					link['text'], 
+					link['text'],
+					link['is_internal'], 
+					link['is_policy'],
+					link['domain_id']
+				)
 			)
-		)
-		self.db_conn.commit()
+			self.db_conn.commit()
+		except:
+			pass
 
 		# if a link was added below will work, otherwise
 		#	if there was a conflict this would fail and
@@ -1300,46 +1313,52 @@ class PostgreSQLDriver:
 		"""
 
 		# create
-		self.db.execute("""
-			INSERT INTO page_link_junction(
-				page_id, 
-				link_id
-			) VALUES (
-				%s,
-				%s
-			) ON CONFLICT DO NOTHING""", 
-			(
-				page_id, 
-				link_id
+		try:
+			self.db.execute("""
+				INSERT INTO page_link_junction(
+					page_id, 
+					link_id
+				) VALUES (
+					%s,
+					%s
+				)""", 
+				(
+					page_id, 
+					link_id
+				)
 			)
-		)
-		self.db_conn.commit()
+			self.db_conn.commit()
+		except:
+			pass
 	# join_link_to_page
 
 	def add_file(self, file):
 		"""
 		Store file contents as TEXT
 		"""
-		self.db.execute("""
-			INSERT INTO file (
-				md5,
-				body,
-				type,
-				is_base64
-			) VALUES (
-				%s,
-				%s,
-				%s,
-				%s
-			) ON CONFLICT DO NOTHING""", 
-			(
-				file['md5'],
-				file['body'],
-				file['type'],
-				file['is_base64']
+		try:
+			self.db.execute("""
+				INSERT INTO file (
+					md5,
+					body,
+					type,
+					is_base64
+				) VALUES (
+					%s,
+					%s,
+					%s,
+					%s
+				)""", 
+				(
+					file['md5'],
+					file['body'],
+					file['type'],
+					file['is_base64']
+				)
 			)
-		)
-		self.db_conn.commit()
+			self.db_conn.commit()
+		except:
+			pass
 	# add_file
 
 	def add_security_details(self, security_details):
@@ -1354,47 +1373,50 @@ class PostgreSQLDriver:
 		lookup_string = str(security_details)
 
 		# store record, ignore if duplicate
-		self.db.execute("""
-			INSERT INTO security_details (
-				lookup_md5,
-				cert_transparency_compliance,
-				cipher,
-				issuer,
-				key_exchange,
-				protocol,
-				san_list,
-				signed_cert_timestamp_list,
-				subject_name,
-				valid_from,
-				valid_to
-			) VALUES (
-				MD5(%s),
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s
-			) ON CONFLICT DO NOTHING""", 
-			(
-				lookup_string,
-				security_details['certificateTransparencyCompliance'],
-				security_details['cipher'],
-				security_details['issuer'],
-				security_details['keyExchange'],
-				security_details['protocol'],
-				json.dumps(security_details['sanList']),
-				json.dumps(security_details['signedCertificateTimestampList']),
-				security_details['subjectName'],
-				security_details['validFrom'],
-				security_details['validTo']
+		try:
+			self.db.execute("""
+				INSERT INTO security_details (
+					lookup_md5,
+					cert_transparency_compliance,
+					cipher,
+					issuer,
+					key_exchange,
+					protocol,
+					san_list,
+					signed_cert_timestamp_list,
+					subject_name,
+					valid_from,
+					valid_to
+				) VALUES (
+					MD5(%s),
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s
+				)""", 
+				(
+					lookup_string,
+					security_details['certificateTransparencyCompliance'],
+					security_details['cipher'],
+					security_details['issuer'],
+					security_details['keyExchange'],
+					security_details['protocol'],
+					json.dumps(security_details['sanList']),
+					json.dumps(security_details['signedCertificateTimestampList']),
+					security_details['subjectName'],
+					security_details['validFrom'],
+					security_details['validTo']
+				)
 			)
-		)
-		self.db_conn.commit()
+			self.db_conn.commit()
+		except:
+			pass
 
 		# return id of matching record
 		self.db.execute("""
@@ -1791,28 +1813,31 @@ class PostgreSQLDriver:
 		"""
 		Store text here, can be for a normal page or a policy.
 		"""
-		self.db.execute("""
-			INSERT INTO page_text (
-				text,
-				tokens,
-				text_md5,
-				word_count,
-				readability_source_md5
-			) VALUES (
-				%s,
-				to_tsvector(%s),
-				MD5(%s),
-				%s,
-				%s
-			) ON CONFLICT DO NOTHING""",
-			(
-				page_text['text'],
-				page_text['text'],
-				page_text['text'],
-				page_text['word_count'],
-				page_text['readability_source_md5']
+		try:
+			self.db.execute("""
+				INSERT INTO page_text (
+					text,
+					tokens,
+					text_md5,
+					word_count,
+					readability_source_md5
+				) VALUES (
+					%s,
+					to_tsvector(%s),
+					MD5(%s),
+					%s,
+					%s
+				)""",
+				(
+					page_text['text'],
+					page_text['text'],
+					page_text['text'],
+					page_text['word_count'],
+					page_text['readability_source_md5']
+				)
 			)
-		)
+		except:
+			pass
 
 		# return id of record with this readability_source_md5 and text_md5
 		self.db.execute("SELECT id FROM page_text WHERE text_md5 = MD5(%s)", (page_text['text'],))
@@ -3150,82 +3175,85 @@ class PostgreSQLDriver:
 			we store it in the db and return the id of
 			the new record.
 		"""
-		self.db.execute("""
-			INSERT INTO policy (
-				client_id,
-				client_ip,
-				browser_type,
-				browser_version,
-				browser_prewait,
-				start_url,
-				start_url_md5,
-				start_url_domain_id,
-				final_url,
-				final_url_md5,
-				final_url_domain_id,
-				title,
-				meta_desc,
-				lang,
-				fk_score,
-				fre_score,
-				type,
-				match_term,
-				match_text,
-				match_text_type,
-				confidence,
-				page_text_id,
-				page_source_md5
-			) VALUES (
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				MD5(%s),
-				%s,
-				%s,
-				MD5(%s),
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s,
-				%s
-			) ON CONFLICT DO NOTHING""",
-			(
-				policy['client_id'],
-				policy['client_ip'],
-				policy['browser_type'],
-				policy['browser_version'],
-				policy['browser_prewait'],
-				policy['start_url'],
-				policy['start_url'],
-				policy['start_url_domain_id'],
-				policy['final_url'],
-				policy['final_url'],
-				policy['final_url_domain_id'],
-				policy['title'],
-				policy['meta_desc'],
-				policy['lang'],
-				policy['fk_score'],
-				policy['fre_score'],
-				policy['type'],
-				policy['match_term'],
-				policy['match_text'],
-				policy['match_text_type'],
-				policy['confidence'],
-				policy['page_text_id'],
-				policy['page_source_md5']
+		try:
+			self.db.execute("""
+				INSERT INTO policy (
+					client_id,
+					client_ip,
+					browser_type,
+					browser_version,
+					browser_prewait,
+					start_url,
+					start_url_md5,
+					start_url_domain_id,
+					final_url,
+					final_url_md5,
+					final_url_domain_id,
+					title,
+					meta_desc,
+					lang,
+					fk_score,
+					fre_score,
+					type,
+					match_term,
+					match_text,
+					match_text_type,
+					confidence,
+					page_text_id,
+					page_source_md5
+				) VALUES (
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					MD5(%s),
+					%s,
+					%s,
+					MD5(%s),
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s,
+					%s
+				)""",
+				(
+					policy['client_id'],
+					policy['client_ip'],
+					policy['browser_type'],
+					policy['browser_version'],
+					policy['browser_prewait'],
+					policy['start_url'],
+					policy['start_url'],
+					policy['start_url_domain_id'],
+					policy['final_url'],
+					policy['final_url'],
+					policy['final_url_domain_id'],
+					policy['title'],
+					policy['meta_desc'],
+					policy['lang'],
+					policy['fk_score'],
+					policy['fre_score'],
+					policy['type'],
+					policy['match_term'],
+					policy['match_text'],
+					policy['match_text_type'],
+					policy['confidence'],
+					policy['page_text_id'],
+					policy['page_source_md5']
+				)
 			)
-		)
+		except:
+			pass
 
 		# return id of record with this start_url and accessed time
 		self.db.execute("SELECT id FROM policy WHERE start_url = %s AND page_text_id = %s", (policy['start_url'],policy['page_text_id']))
@@ -3283,13 +3311,15 @@ class PostgreSQLDriver:
 		Given a policy_id and page_id we create a record in
 			the junction table.
 		"""
-		self.db.execute("""
-			INSERT INTO page_policy_junction (policy_id, page_id)
-			VALUES (%s,%s)
-			ON CONFLICT DO NOTHING""", 
-			(policy_id, page_id)
-		)
-		self.db_conn.commit()
+		try:
+			self.db.execute("""
+				INSERT INTO page_policy_junction (policy_id, page_id)
+				VALUES (%s,%s)""", 
+				(policy_id, page_id)
+			)
+			self.db_conn.commit()
+		except:
+			pass
 	# attach_policy_to_page
 
 	def attach_policy_to_crawl(self, policy_id, crawl_id):
@@ -3297,13 +3327,15 @@ class PostgreSQLDriver:
 		Given a policy_id and page_id we create a record in
 			the junction table.
 		"""
-		self.db.execute("""
-			INSERT INTO crawl_policy_junction (policy_id, crawl_id)
-			VALUES (%s,%s)
-			ON CONFLICT DO NOTHING""", 
-			(policy_id, crawl_id)
-		)
-		self.db_conn.commit()
+		try:
+			self.db.execute("""
+				INSERT INTO crawl_policy_junction (policy_id, crawl_id)
+				VALUES (%s,%s)""", 
+				(policy_id, crawl_id)
+			)
+			self.db_conn.commit()
+		except:
+			pass
 	# attach_policy_to_crawl
 
 	def get_id_and_policy_text(self, word_count_null=None, readability_null=None):
@@ -3496,18 +3528,20 @@ class PostgreSQLDriver:
 		Because we mark disclosure where a parent company is mentioned, this means
 			that the request_owner_id and disclosed_owner_id may not match.
 		"""
-		self.db.execute("""
-			INSERT INTO policy_request_disclosure (
-				page_id, policy_id, 
-				request_owner_id, disclosed,
-				disclosed_owner_id
-			) VALUES (%s,%s,%s,%s,%s)
-			ON CONFLICT DO NOTHING""", 
-			(	page_id, policy_id, 
-				request_owner_id, disclosed,
-				disclosed_owner_id)
-		)
-		self.db_conn.commit()
+		try:
+			self.db.execute("""
+				INSERT INTO policy_request_disclosure (
+					page_id, policy_id, 
+					request_owner_id, disclosed,
+					disclosed_owner_id
+				) VALUES (%s,%s,%s,%s,%s)""", 
+				(	page_id, policy_id, 
+					request_owner_id, disclosed,
+					disclosed_owner_id)
+			)
+			self.db_conn.commit()
+		except:
+			pass
 	# update_request_disclosure
 
 	def update_crawl_3p_domain_disclosure(self, crawl_id, domain_owner_id):
@@ -3532,18 +3566,20 @@ class PostgreSQLDriver:
 		"""
 		CREATE TABLE IF NOT EXISTS policy_request_disclosure(crawl_id TEXT,policy_id INTEGER REFERENCES policy(id),domain_owner_id TEXT REFERENCES domain_owner(id),disclosed BOOLEAN,disclosed_owner_id TEXT REFERENCES domain_owner(id),UNIQUE (crawl_id, domain_owner_id));
 		"""
-		self.db.execute("""
-			INSERT INTO policy_request_disclosure (
-				crawl_id, policy_id, 
-				domain_owner_id, disclosed,
-				disclosed_owner_id
-			) VALUES (%s,%s,%s,%s,%s)
-			ON CONFLICT DO NOTHING""", 
-			(	crawl_id, policy_id, 
-				domain_owner_id, disclosed,
-				disclosed_owner_id)
-		)
-		self.db_conn.commit()
+		try:
+			self.db.execute("""
+				INSERT INTO policy_request_disclosure (
+					crawl_id, policy_id, 
+					domain_owner_id, disclosed,
+					disclosed_owner_id
+				) VALUES (%s,%s,%s,%s,%s)""", 
+				(	crawl_id, policy_id, 
+					domain_owner_id, disclosed,
+					disclosed_owner_id)
+			)
+			self.db_conn.commit()
+		except:
+			pass
 	# update_policy_request_disclosure
 	
 	def get_total_request_disclosure_count(self, disclosed=None, policy_type=None):
