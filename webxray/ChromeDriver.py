@@ -94,7 +94,7 @@ class ChromeDriver:
 
 		# run command and as subprocess
 		if self.debug: print(f'going to run command: "{chrome_cmd}"')
-		subprocess.Popen(chrome_cmd,shell=True,stdin=None,stdout=devnull,stderr=devnull,close_fds=True)
+		subprocess.Popen(chrome_cmd,close_fds=True)
 
 		# allow browser to launch
 		time.sleep(5)
