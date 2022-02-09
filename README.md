@@ -1,3 +1,9 @@
+# WARNING
+
+This code is not fully tested, I just fixed the errors that occured when I tried to run the program.
+This version works for me on Windows 10,
+I have tested all functions (except Visualizing) with the provided example_sites.txt
+
 # webXray
 
 webXray is a tool for analyzing webpage traffic and content, extracting legal policies, and identifying the companies which collect user data.  A command line user interface makes webXray easy for non-programmers to use, and those with advanced needs may analyze billions of requests by fully leveraging webXray's distributed architecture.  webXray has been used to run hundreds of concurrent browser sessions distributed across multiple continents.
