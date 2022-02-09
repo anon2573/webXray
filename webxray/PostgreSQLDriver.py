@@ -26,10 +26,10 @@ class PostgreSQLDriver:
 		"""
 
 		# modify this per your install
-		self.db_user = 'postgres'
-		self.db_pass = 'iDy3Z3nNNfZSkJSueHOejF'
+		self.db_user = 'user'
+		self.db_pass = 'password'
 		self.db_host = 'localhost'
-		self.db_port = '10012'
+		self.db_port = '5432'
 
 		# the db_prefix can be overridden if you like
 		self.db_prefix = db_prefix
